@@ -1,30 +1,85 @@
 from hyundai_kia_connect_api import VehicleManager
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 
-def create_vehicle_manager():
-    
-    # Region codes: 1=Europe, 2=Canada, 3=USA, 4=Korea
-    # Brand codes: 2=Hyundai, 1=Kia, 3=Genesis
-    vm = VehicleManager(
-        region=int(os.getenv("BLUELINK_REGION", "3")),
-        brand=int(os.getenv("BLUELINK_BRAND", "2")),
-        username=os.getenv("BLUELINK_USERNAME"),
-        password=os.getenv("BLUELINK_PASSWORD"),
-        pin=os.getenv("BLUELINK_PIN")
-    )
+# Region codes: 1=Europe, 2=Canada, 3=USA, 4=Korea
+# Brand codes: 2=Hyundai, 1=Kia, 3=Genesis
+vm = VehicleManager(
+    region=int(os.getenv("BLUELINK_REGION", "3")),
+    brand=int(os.getenv("BLUELINK_BRAND", "2")),
+    username=os.getenv("BLUELINK_USERNAME"),
+    password=os.getenv("BLUELINK_PASSWORD"),
+    pin=os.getenv("BLUELINK_PIN")
+)
 
-    print("Connecting to Bluelink...")
-    vm.check_and_refresh_token()
-    vm.update_all_vehicles_with_cached_state()
+#implement caching
+_last_refresh_time = 0
+_cache_duration = 60
+
+def refresh_vehicle_manager():
+    global _last_refresh_time
     
-    return vm
+    now = time.time()
+    
+    if _last_refresh_time != 0 and (now - _last_refresh_time) < _cache_duration:
+        print(f"Using cached data ({int(now - _last_refresh_time)}s old)")
+        return
+    
+    # Cache expired or first call, do refresh
+    print("Refreshing connection to Bluelink...")
+    try:
+        vm.check_and_refresh_token()
+        vm.update_all_vehicles_with_cached_state()
+        _last_refresh_time = now
+        print("Refresh successful")
+    except Exception as e:
+        print(f"Refresh failed: {e}")
+        _last_refresh_time = now  # Still update to avoid hammering
+        raise
+
+        
+def tool_get_battery_status():
+    """Will send to bluelink api and get battery percentage and available range"""
+    refresh_vehicle_manager()
+    vehicle = list(vm.vehicles.values())[0]
+    return f"Battery: {vehicle.ev_battery_percentage}% and Range: {vehicle.ev_driving_range} miles"
+
+def tool_get_lock_status():
+    """Will send to bluelink api and get lock/unlock status and location of car"""
+    refresh_vehicle_manager()
+    vehicle = list(vm.vehicles.values())[0]
+    return f"Locked: {vehicle.is_locked} and Location: {vehicle.location_latitude}, {vehicle.location_longitude}"
+
+def tool_lock_car():
+    """Will lock the car"""
+    refresh_vehicle_manager()
+    vehicle = list(vm.vehicles.values())[0]
+    try:
+        result = vm.lock(vehicle.id)
+        return f"Car locked successfully. Result: {result}"
+    except Exception as e:
+        # Library bug: Hyundai USA API returns non-JSON, but the command succeeds
+        print(f"Lock command sent (parse error: {e})")
+        return "Lock command sent to the car. It should be locked now."
+
+def tool_unlock_car():
+    """Will unlock the car"""
+    refresh_vehicle_manager()
+    vehicle = list(vm.vehicles.values())[0]
+    try:
+        result = vm.unlock(vehicle.id)
+        return f"Car unlocked successfully. Result: {result}"
+    except Exception as e:
+        # Library bug: Hyundai USA API returns non-JSON, but the command succeeds
+        print(f"Unlock command sent (parse error: {e})")
+        return "Unlock command sent to the car. It should be unlocked now."
 
 def get_car_details():
 
-    vm = create_vehicle_manager()
+    refresh_vehicle_manager()
 
     print("\nVehicles found:")
     for vehicle_id, vehicle in vm.vehicles.items():
@@ -36,4 +91,5 @@ def get_car_details():
         print(f"  Location: {vehicle.location_latitude}, {vehicle.location_longitude}")
 
 if __name__ == '__main__':
-    get_car_details()
+    print(tool_get_battery_status())
+    print(tool_get_lock_status())
