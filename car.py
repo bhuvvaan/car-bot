@@ -1,4 +1,5 @@
 from hyundai_kia_connect_api import VehicleManager
+from hyundai_kia_connect_api.ApiImpl import ClimateRequestOptions
 from dotenv import load_dotenv
 import os
 import time
@@ -14,6 +15,7 @@ vm = VehicleManager(
     password=os.getenv("BLUELINK_PASSWORD"),
     pin=os.getenv("BLUELINK_PIN")
 )
+
 
 #implement caching
 _last_refresh_time = 0
@@ -76,6 +78,20 @@ def tool_unlock_car():
         # Library bug: Hyundai USA API returns non-JSON, but the command succeeds
         print(f"Unlock command sent (parse error: {e})")
         return "Unlock command sent to the car. It should be unlocked now."
+
+'''
+def tool_start_climate(temperature: float = 72, duration: int = 5, defrost: bool = False, front_left_seat: int = 0):
+    """Will start climate in the car"""
+    refresh_vehicle_manager()
+    vehicle = list(vm.vehicles.values())[0]
+    options = ClimateRequestOptions(set_temp= temperature, duration=duration, defrost=defrost, front_left_seat=front_left_seat, climate=True)
+    try:
+        result = vm.start_climate(vehicle.id, options)
+        return f"Climate started at {temperature}°F for {duration} min. Defrost: {defrost}."
+    except Exception as e:
+        print(f"Climate command sent (parse error: {e})")
+        return f"Climate start command sent at {temperature}°F"
+'''
 
 def get_car_details():
 
