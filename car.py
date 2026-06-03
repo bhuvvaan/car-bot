@@ -77,11 +77,17 @@ def tool_get_battery_status():
     return f"Battery: {vehicle.ev_battery_percentage}% and Range: {vehicle.ev_driving_range} miles"
 
 def tool_get_lock_status():
-    """Will send to bluelink api and get lock/unlock status and location of car"""
+    """Will send to bluelink api and get lock/unlock status"""
+    refresh_vehicle_manager()
+    vehicle = list(vm.vehicles.values())[0]
+    return f"Locked: {vehicle.is_locked}"
+
+def tool_get_location():
+    """Will send to bluelink api and get location of car"""
     refresh_vehicle_manager()
     vehicle = list(vm.vehicles.values())[0]
     address = get_address_from_coordinates(vehicle.location_latitude, vehicle.location_longitude)
-    return f"Locked: {vehicle.is_locked} and Address: {address}"
+    return f"Location: {address}"
 
 def tool_lock_car():
     """Will lock the car"""
