@@ -22,6 +22,8 @@ def execute_tool(tool_name):
         return tool_get_battery_status()
     elif tool_name == "get_lock_status":
         return tool_get_lock_status()
+    elif tool_name == "get_location":
+        return tool_get_location()
     elif tool_name == "lock_car":
         return tool_lock_car()
     elif tool_name == "unlock_car":
