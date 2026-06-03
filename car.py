@@ -3,6 +3,7 @@ from hyundai_kia_connect_api.ApiImpl import ClimateRequestOptions
 from dotenv import load_dotenv
 import os
 import time
+import requests
 
 load_dotenv()
 
@@ -16,6 +17,32 @@ vm = VehicleManager(
     pin=os.getenv("BLUELINK_PIN")
 )
 
+
+def get_address_from_coordinates(latitude, longitude):
+    """Convert GPS coordinates to a street address using OpenStreetMap."""
+    try:
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            params={
+                "lat": latitude,
+                "lon": longitude,
+                "format": "json",
+                "zoom": 18
+            },
+            headers={
+                "User-Agent": "PersonalCarBot/1.0"  # Required by Nominatim
+            },
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("display_name", "Address not found")
+        else:
+            return "Could not look up address"
+    except Exception as e:
+        print(f"Address lookup error: {e}")
+        return "Address lookup failed"
 
 #implement caching
 _last_refresh_time = 0
@@ -53,7 +80,8 @@ def tool_get_lock_status():
     """Will send to bluelink api and get lock/unlock status and location of car"""
     refresh_vehicle_manager()
     vehicle = list(vm.vehicles.values())[0]
-    return f"Locked: {vehicle.is_locked} and Location: {vehicle.location_latitude}, {vehicle.location_longitude}"
+    address = get_address_from_coordinates(vehicle.location_latitude, vehicle.location_longitude)
+    return f"Locked: {vehicle.is_locked} and Address: {address}"
 
 def tool_lock_car():
     """Will lock the car"""

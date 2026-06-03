@@ -16,7 +16,7 @@ tools = [
     },
     {
         "name": "get_lock_status",
-        "description": "Check if the car is currently locked or unlocked",
+        "description": "Check if the car is currently locked or unlocked. It can also be used to get the last know location of the car",
         "input_schema": {
             "type": "object",
             "properties": {},
