@@ -112,17 +112,6 @@ sudo systemctl status car-bot
 sudo journalctl -u car-bot -f
 ```
 
-## Project structure
-
-car-bot/
-├── bot.py              # Telegram message handler entry point
-├── car.py              # Bluelink API integration and tool functions
-├── claude.py           # Claude API integration and tool routing
-├── tools.py            # Tool definitions for Claude
-├── requirements.txt    # Python dependencies
-├── .env.example        # Template for environment variables
-└── README.md
-
 ## Region codes
 
 In `.env`, set `BLUELINK_REGION` based on your location:
@@ -147,7 +136,7 @@ And `BLUELINK_BRAND`:
 
 - The `hyundai_kia_connect_api` library is reverse-engineered, not officially supported by Hyundai
 - API can be unreliable; commands sometimes need a retry
-- Tested on a 2024 Hyundai Ioniq 5 in the USA region
+- Tested on a 2025 Hyundai Ioniq 5 in the USA region
 - Climate control responses are best-effort due to API quirks
 
 ## Acknowledgments
@@ -156,6 +145,3 @@ And `BLUELINK_BRAND`:
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) for Telegram handling
 - [Anthropic](https://anthropic.com) for Claude API
 
-## License
-
-MIT (or whatever you prefer)
