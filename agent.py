@@ -26,7 +26,11 @@ MAX_STEPS = 10
 SYSTEM = """You are an assistant for the owner of a Hyundai Ioniq electric car.
 Answer the owner's question by gathering facts with your tools rather than guessing.
 Use as many tool calls as you need, and call independent tools in parallel.
-Distances are in miles. Keep the final answer short and practical."""
+Distances are in miles. Keep the final answer short and practical.
+
+For road trips: never plan to arrive anywhere below about 10% battery, and assume DC fast
+charging takes the car to 80% (charging past 80% is slow). Cold weather, high speed and
+strong wind reduce range. Search for chargers only in the stretches where a stop is needed."""
 
 client = Anthropic()
 
@@ -73,7 +77,7 @@ def run_tool(name, tool_input):
 
 # ---------- Agent loop ----------
 
-def run_agent(question, verbose=False):
+def run_agent(question, verbose=False, max_steps=MAX_STEPS):
     messages = [{"role": "user", "content": question}]
     totals = {"input": 0, "output": 0}
     started = time.perf_counter()
@@ -81,9 +85,19 @@ def run_agent(question, verbose=False):
     trace("QUESTION", question, CYAN)
     trace("MODEL", MODEL, DIM)
 
-    for step in range(1, MAX_STEPS + 1):
+    for step in range(1, max_steps + 1):
         print()
+        last_step = step == max_steps
         trace(f"━━ Step {step} ━━", "calling Claude...", CYAN)
+        if last_step:
+            # Out of steps: turn tools off so Claude must answer with what it has
+            trace("⚠ last step:", "tools disabled, asking for a final answer", RED)
+            if step > 1:
+                messages[-1]["content"].append({
+                    "type": "text",
+                    "text": "You have run out of tool calls. Give your best final answer now "
+                            "from the information gathered so far, noting anything unverified.",
+                })
         if verbose:
             trace("messages sent:", "", DIM)
             dump_messages(messages)
@@ -95,6 +109,7 @@ def run_agent(question, verbose=False):
             system=SYSTEM,
             thinking={"type": "adaptive", "display": "summarized"},
             tools=TOOLS,
+            tool_choice={"type": "none"} if last_step else {"type": "auto"},
             messages=messages,
         )
         elapsed = time.perf_counter() - t0
@@ -155,17 +170,15 @@ def run_agent(question, verbose=False):
             })
         messages.append({"role": "user", "content": tool_results})
 
-    trace("⚠ Step limit reached", f"({MAX_STEPS} Claude calls) without a final answer", RED)
-    return None
-
 
 def main():
     parser = argparse.ArgumentParser(description="Ask the car agent a question.")
     parser.add_argument("question")
     parser.add_argument("--verbose", action="store_true", help="dump the full message list sent each step")
+    parser.add_argument("--max-steps", type=int, default=MAX_STEPS, help=f"Claude calls allowed (default {MAX_STEPS})")
     args = parser.parse_args()
 
-    answer = run_agent(args.question, verbose=args.verbose)
+    answer = run_agent(args.question, verbose=args.verbose, max_steps=args.max_steps)
     if answer:
         print()
         trace("ANSWER", "", GREEN)

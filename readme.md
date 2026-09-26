@@ -112,6 +112,24 @@ sudo systemctl status car-bot
 sudo journalctl -u car-bot -f
 ```
 
+## Multi-step agent (`agent.py`)
+
+A learning playground: one question, many Claude calls. `agent.py` runs a
+hand-written tool loop and prints a trace of every step — Claude's thinking,
+tool calls and results, timing and token usage.
+
+```bash
+python agent.py "I want to drive to San Francisco. Can I make it, and where should I stop to charge?"
+python agent.py --verbose "..."      # also dump the full message list each step
+python agent.py --max-steps 5 "..."  # limit Claude calls (default 10)
+```
+
+Tools (all read-only, in `agent_tools.py`): battery, lock status, car location,
+place lookup (Nominatim), routing (OSRM), chargers along a route (NLR/NREL
+Alternative Fuel Stations API) and weather (Open-Meteo). Only charger search
+needs a key — set `NREL_API_KEY` in `.env`, otherwise the rate-limited
+`DEMO_KEY` is used.
+
 ## Region codes
 
 In `.env`, set `BLUELINK_REGION` based on your location:
